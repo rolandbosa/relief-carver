@@ -33,7 +33,7 @@ And finally:
 Things to do:
 ------------
 
-Need to implement proper GCode generation function (what was that code
+Need to implement proper G-code generation function (what was that code
 again?).
 
 Use less global variables and write better Ruby code (this code is far
