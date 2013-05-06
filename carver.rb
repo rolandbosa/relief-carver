@@ -4,7 +4,6 @@ require 'chunky_png'
 require 'ruby-progressbar'
 require 'pp'
 
-
 # Big picture / high resolution
 $ImageFilename = 'sf.png'
 
@@ -21,27 +20,24 @@ $OffsetX     = 2.00
 $OffsetY     = 2.00
 
 # dimensions of the block
-$BlockX      = 10.00
-$BlockY      = 5.00
-$BlockZ      = 1.00
+$BlockX      = 5.00
+$BlockY      = 3.00
+$BlockZ      = 1.50
 
 # How the relief gets carved
-$ReliefMinZ  =  1.00 / 16.00
-$ReliefMaxZ  = 15.00 / 16.00
+$ReliefMinZ  = 1.00 / 4.0
+$ReliefMaxZ  = $BlockZ - 1.0 / 16.00
 
-# The radius of the carving tool (1/2" diameter == 1/4" radius)
-$CarveRadius = 1.00 /  4.00
+# The radius of the carving tool (1/4" diameter == 1/8" radius)
+$CarveRadius = 1.00 /  8.00
 
 # How deep the tool can be to carve out material (how much material
 # can be carved at a given depth) - determines how many times we have
 # to pass over a spot to reach maximum penetration depth...
-$CarveDepth  = 1.00 /  4.00
+$CarveDepth  = 1.00 /  8.00
 
-def outputGCode(file, x, y, z)
-  # provide an implementation which outputs the proper GCode to move
-  # the drill to the specified position
-  file.puts "#{x},#{y},#{z}"
-end
+$CarveSpeed  = 10.0
+$TaxiSpeed   = 30.0
 
 #-------
 
@@ -97,10 +93,37 @@ STDERR.puts "Inch2PixelCoefficient: #{$aspect}"
 STDERR.puts "Pixels on block: #{$BlockXPixels}  #{$BlockYPixels}"
 STDERR.puts "Skipped Pixels: #{$ImageOffsetX} #{$ImageOffsetY}"
 
-def goto(file, x, y, z)
+$prevX = nil
+$prevY = nil
+$prevZ = nil
+$prevS = nil
+
+def goto(file, x, y, z, s)
   x += $OffsetX
   y += $OffsetY
-  outputGCode(file, x, y, z)
+
+  line = []
+  if x != $prevX then
+    line << "X#{x}"
+    $prevX = x
+  end
+
+  if y != $prevY then
+    line << "Y#{y}"
+    $prevY = y
+  end
+
+  if z != $prevZ then
+    line << "Z#{z}"
+    $prevZ = z
+  end
+
+  if s != $prevS then
+    line << "F#{s}"
+    $prevS = s
+  end
+
+  file.puts line.join(' ') unless line.empty?
 end
 
 def maxHeight(x, y)
@@ -133,13 +156,15 @@ sliceCount = (total_carve_amount / $CarveDepth).ceil
 # carving increment: either advance at least one pixel of the
 # heightmap (1.0 / $aspect), or a quarter of the current carving tool
 # - do you have any better ideas?
+STDERR.puts "One pixel of the source image corresponds to #{1.0 / $aspect} inches."
+STDERR.puts "Advancing by 1/4 of the tool radius amounts to #{$CarveRadius / 4.0} inches."
 carveStep = [1.0 / $aspect, $CarveRadius / 4.0].max
 STDERR.puts "Using a carver step size of: #{carveStep} inches."
 totalSteps = (($BlockX / carveStep).ceil * ($BlockY / carveStep).ceil).to_i
 
 # lets do it!
 File.open($GCodeFilename, "w") do |file|
-  goto file, -$OffsetX, -$OffsetY, $TaxiZ
+  goto file, -$OffsetX, -$OffsetY, $TaxiZ, $TaxiSpeed
   while 0 < sliceCount do
     progress = ProgressBar.create(:format => '%e |%b>>%i| %P%% %c/%C %t',
                                   :title => "Slice #{sliceCount}",
@@ -149,16 +174,16 @@ File.open($GCodeFilename, "w") do |file|
     carveX = 0.0
     while carveX < $BlockX do
       carveY = 0.0
-      goto file, carveX, carveY, $TaxiZ
+      goto file, carveX, carveY, $TaxiZ, $TaxiSpeed
       while carveY < $BlockY do
         redValue = maxHeight(carveX, carveY)
         reliefZ = $ReliefMinZ + ($ReliefRange * (redValue - $minRed)) / $rangeRed
         if reliefZ < sliceFloor then reliefZ = sliceFloor end
-        goto file, carveX, carveY, reliefZ
+        goto file, carveX, carveY, reliefZ, $CarveSpeed
         progress.increment if progress.progress < (totalSteps - 1)
         carveY += carveStep
       end
-      goto file, carveX, carveY, $TaxiZ
+      goto file, carveX, carveY, $TaxiZ, $TaxiSpeed
       carveX += carveStep
     end
     progress.finish
@@ -166,6 +191,6 @@ File.open($GCodeFilename, "w") do |file|
 
   # go back to rest position
   STDERR.puts "Moving back to origin..."
-  goto file, -$OffsetX, -$OffsetY, $TaxiZ
-  goto file, -$OffsetX, -$OffsetY, 0.0
+  goto file, -$OffsetX, -$OffsetY, $TaxiZ, $TaxiSpeed
+  goto file, -$OffsetX, -$OffsetY, 0.0, $TaxiSpeed
 end
