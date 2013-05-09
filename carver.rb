@@ -5,7 +5,8 @@ require 'ruby-progressbar'
 require 'pp'
 
 # Which relief are we carving?
-$Relief = 'sf'
+# $Relief = 'sf'
+$Relief = 'yosemite'
 
 # Big picture / high resolution
 # $ImageFilename = "#{$Relief}.png"
