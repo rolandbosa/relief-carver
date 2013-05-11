@@ -61,7 +61,7 @@ $FlipY       = false
 # Tiny amount to leave on surface when doing slice N, which will be
 # shaved off during slice N+1. Makes any visible marks for slices
 # disappear.
-$SliceShave  = 0.05
+$SliceShave  = 0.005
 
 #-------
 
@@ -196,6 +196,7 @@ while 0 < sliceCount do
                                 :title => "Slice #{sliceCount}",
                                 :total => totalSteps)
   File.open("#{$GCodeFilenamePrefix}-#{sliceCount}.txt", "w") do |file|
+    file.write "G40 G90 G1 "
     goto file, -$OffsetX, -$OffsetY, $TaxiZ, $TaxiSpeed
     sliceCount -= 1
     sliceFloor = $ReliefMinZ + sliceCount * $CarveDepth
