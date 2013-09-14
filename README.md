@@ -45,3 +45,27 @@ Things to do:
 
 Use less global variables and write better Ruby code (this code is far
 from 'nice').
+
+
+The images
+----------
+
+In the 'ned' subdirectory, you'll find a Rakefile, which can be used
+to create the PNGs of San Francisco and Yosemite.
+
+To create them, use the following command line:
+
+    rake yosemite
+
+and
+
+    rake sanfrancisco
+
+The rakefile requires a bunch of dependencies, amongst others:
+
+  * Data is downloaded using *curl*.
+
+  * The zipped data is unpacked using the *rubyzip* gem.
+
+  * The unzipped data is converted and processed using the Gdal
+    suite. (see http://www.gdal.org)
