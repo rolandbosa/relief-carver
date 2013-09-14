@@ -17,3 +17,11 @@ data.txt
 .yardoc
 _yardoc
 doc/
+
+ned/*.flt
+ned/*.zip
+ned/*.tif
+ned/*.hdr
+ned/*.prj
+ned/*.png
+ned/*.vrt
